@@ -83,7 +83,7 @@ def partition(file, outfold, test_size=0.1, valid_size=0.1):
              for filename in ['train.txt', 'valid.txt', 'test.txt']]
     adjusted_test_size = test_size / (1 - valid_size)
     with open(file, 'r') as f:
-        for line in f.readlines():
+        for line in f:
             if not line.strip():
                 continue
             if random.random() < valid_size:

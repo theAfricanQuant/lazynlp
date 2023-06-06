@@ -24,10 +24,7 @@ def parse_html(page):
     except UnicodeDecodeError as e:
         print("Can't decode utf-8")
         return ''
-    paragraphs = []
-    for part in parts:
-        if not part.is_boilerplate:
-            paragraphs.append(part.text)
+    paragraphs = [part.text for part in parts if not part.is_boilerplate]
     return '\n\n'.join(paragraphs)
 
 
@@ -91,15 +88,14 @@ def connect_lines(txt, line_sep='\n'):
 
     result, curr = '', ''
     for line in lines:
-        line = line.strip()
-        if not line:
+        if line := line.strip():
+            curr += f'{line} '
+
+        else:
             if curr:
                 result += (curr + '\n')
             result += line_sep
             curr = ''
-        else:
-            curr += (line + ' ')
-
     return result + curr
 
 
@@ -150,36 +146,27 @@ def dedup_lines(files, outfold):
 
     """
     os.makedirs(outfold, exist_ok=True)
-    seen = set()
     total, unique = 0, 0
 
     if isinstance(files, str):
         files = [files]
 
+    seen = set()
     for i, file in enumerate(files):
         print('Processing:', file)
         filename = get_filename(file)
-        out = open(os.path.join(outfold, str(i) + '_' + filename), 'w')
-        f_in = open(file, 'r')
-        line = f_in.readline()
-        while line:
-            hashed = get_hash(line.strip())
-            if hashed not in seen:
-                out.write(line)
-                seen.add(hashed)
-                unique += 1
-            total += 1
-            line = f_in.readline()
-        f_in.close()
-        out.close()
+        with open(os.path.join(outfold, f'{str(i)}_{filename}'), 'w') as out:
+            with open(file, 'r') as f_in:
+                while line := f_in.readline():
+                    hashed = get_hash(line.strip())
+                    if hashed not in seen:
+                        out.write(line)
+                        seen.add(hashed)
+                        unique += 1
+                    total += 1
     if total == 0:
         raise ValueError('The files list seems to be empty')
-    print(
-        '{} unique lines out of {}: {}'.format(
-            unique,
-            total,
-            unique /
-            total))
+    print(f'{unique} unique lines out of {total}: {unique / total}')
 
 
 def dedup_lines_from_new_file(original_files, new_file, outfile):
@@ -192,22 +179,16 @@ def dedup_lines_from_new_file(original_files, new_file, outfile):
 
     for original_file in original_files:
         with open(original_file, 'r') as f_in:
-            line = f_in.readline()
-            while line:
+            while line := f_in.readline():
                 seen.add(get_hash(line.strip()))
-                line = f_in.readline()
-
-    out = open(outfile, 'w')
-    total, unique = 0, 0
-    with open(new_file, 'r') as f_in:
-        line = f_in.readline()
-        while line:
-            hashed = get_hash(line.strip())
-            if hashed not in seen:
-                out.write(line)
-                seen.add(hashed)
-                unique += 1
-            total += 1
-            line = f_in.readline()
-    out.close()
+    with open(outfile, 'w') as out:
+        total, unique = 0, 0
+        with open(new_file, 'r') as f_in:
+            while line := f_in.readline():
+                hashed = get_hash(line.strip())
+                if hashed not in seen:
+                    out.write(line)
+                    seen.add(hashed)
+                    unique += 1
+                total += 1
     print(f'{unique} unique lines out of {total}: {unique / total}')
