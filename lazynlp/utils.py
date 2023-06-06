@@ -7,7 +7,7 @@ def dict_sorted_2_file(dictionary, file, reverse=True):
     with open(file, 'w') as out:
         sorted_keys = sorted(dictionary, key=dictionary.get, reverse=reverse)
         for k in sorted_keys:
-            out.write('{}\t{}\n'.format(k, dictionary[k]))
+            out.write(f'{k}\t{dictionary[k]}\n')
 
 
 def get_hash(txt):
@@ -40,9 +40,7 @@ def is_positive_number(string, neg=False):
         rev = rev[idx + 1:]
         idx = rev.find(',')
 
-    if idx == -1 and rev.isdigit():
-        return True
-    return False
+    return bool(idx == -1 and rev.isdigit())
 
 
 def is_number(string):
@@ -58,7 +56,7 @@ def is_number(string):
 
 
 def get_english_alphabet():
-    return set([chr(i) for i in range(ord('a'), ord('z') + 1)])
+    return {chr(i) for i in range(ord('a'), ord('z') + 1)}
 
 
 def sort_files_by_size(files):

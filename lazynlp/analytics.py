@@ -12,9 +12,8 @@ from .utils import *
 def build_ngram_from_tokens(tokens, n):
     """ Create a dictionary of n-gram from the list of tokens
     """
-    count = {}
     curr = tokens[:n]
-    count[' '.join(curr)] = 1
+    count = {' '.join(curr): 1}
     for token in tokens[n:]:
         curr = curr[1:] + [token]
         string = ' '.join(curr)
@@ -41,55 +40,50 @@ def build_ngram(file,
              write it to outfile
     interval: how often to report the progress.
     """
-    if gran not in set(['word', 'char']):
+    if gran not in {'word', 'char'}:
         raise ValueError("gran has to be 'word' or 'char'")
     count = {}
-    f = open(file, 'r')
-    i = 1
-    line = f.readline()
-    start = time.time()
-
-    # read line by line in case file too big to read all lines at once
-    while line:
-        line = line.strip()
-        if line:
-            if uncase:
-                line = line.lower()
-
-            if gran == 'word':
-                if alphanumeric:
-                    line = remove_non_alphanumeric(line)
-            else:
-                line = remove_non_alpha(line)
-            line = collapse_white_spaces(line)
-            tokens = line.split()
-            line_count = build_ngram_from_tokens(tokens, n)
-
-            count.update(line_count)
-
-            if bf is not None:
-                for key in line_count:
-                    bf.add(key)
-
-            if interval > 0 and i % interval == 0:
-                print(f'Process line: {i}. Time: {time.time() - start}')
-                start = time.time()
-
-            i += 1
-
+    with open(file, 'r') as f:
+        i = 1
         line = f.readline()
+        start = time.time()
 
-    f.close()
+            # read line by line in case file too big to read all lines at once
+        while line:
+            line = line.strip()
+            if line:
+                if uncase:
+                    line = line.lower()
+
+                if gran == 'word':
+                    if alphanumeric:
+                        line = remove_non_alphanumeric(line)
+                else:
+                    line = remove_non_alpha(line)
+                line = collapse_white_spaces(line)
+                tokens = line.split()
+                line_count = build_ngram_from_tokens(tokens, n)
+
+                count |= line_count
+
+                if bf is not None:
+                    for key in line_count:
+                        bf.add(key)
+
+                if interval > 0 and i % interval == 0:
+                    print(f'Process line: {i}. Time: {time.time() - start}')
+                    start = time.time()
+
+                i += 1
+
+            line = f.readline()
 
     if outfile:
         outfold = outfile[:outfile.rfind('/')]
         os.makedirs(outfold, exist_ok=True)
         dict_sorted_2_file(count, os.path.join(outfile.format(n)))
 
-    if bf:
-        return bf
-
-    return count
+    return bf if bf else count
 
 
 def build_word_ngram(file,
@@ -138,7 +132,7 @@ def estimate_overlap(source_files,
     header: number of lines of each file to skip. It's because in our format,
             the first line is the url
     """
-    if gran not in set(['word', 'char']):
+    if gran not in {'word', 'char'}:
         raise ValueError("gran has to be 'word' or 'char'")
     if isinstance(source_files, str):
         source_files = [source_files]
@@ -170,7 +164,7 @@ def estimate_overlap_bf(bf, target_file, gran='word', n=8, header=0):
     """ Estimate overlapping of target_file with an existing bloomfilter
     gran: granularity of the token. It can be 'word' or 'char'
     """
-    if gran not in set(['word', 'char']):
+    if gran not in {'word', 'char'}:
         raise ValueError("gran has to be 'word' or 'char'")
 
     f = open(target_file, 'r')
@@ -197,7 +191,7 @@ def estimate_overlap_bf(bf, target_file, gran='word', n=8, header=0):
         line = f.readline()
 
     result = seen / total
-    print('{} seen out of {}: {}'.format(seen, total, result))
+    print(f'{seen} seen out of {total}: {result}')
     return result
 
 
@@ -206,17 +200,14 @@ def file_stats(file):
     """
     line_lengths, token_lengths = [], []
     with open(file, 'r') as f:
-        line = f.readline()
-        while line:
+        while line := f.readline():
             tokens = line.split()
             line_lengths.append(len(tokens))
             line_token_lengths = [len(token) for token in tokens]
             token_lengths.append([len(tokens),
                                   sum(line_token_lengths) / len(tokens)])
-            line = f.readline()
-
-    total_tokens = sum([pair[0] for pair in token_lengths])
-    total_chars = sum([pair[0] * pair[1] for pair in token_lengths])
+    total_tokens = sum(pair[0] for pair in token_lengths)
+    total_chars = sum(pair[0] * pair[1] for pair in token_lengths)
     average_chars = total_chars / total_tokens
     print(f'Character per word: average = {average_chars}.')
     print(f'Word count per line:'

@@ -42,21 +42,17 @@ def get_gutenberg_link_from_id(book_id):
 
 
 def get_us_gutenberg_links(outfile, max_id=58910):
-    out = open(outfile, 'w')
-    for book_id in range(1, max_id + 1):
-        link = get_gutenberg_link_from_id(book_id)
-        if link:
-            out.write(link + '\n')
-        else:
-            print("Can't find link for book id", book_id)
-    out.close()
+    with open(outfile, 'w') as out:
+        for book_id in range(1, max_id + 1):
+            if link := get_gutenberg_link_from_id(book_id):
+                out.write(link + '\n')
+            else:
+                print("Can't find link for book id", book_id)
 
 
 def get_id_aus(link):
     id_ = link[link.rfind('/') + 1:link.rfind('.')]
-    if id_[-1] == 'h':
-        return id_[:-1]
-    return id_
+    return id_[:-1] if id_[-1] == 'h' else id_
 
 
 def get_aus_gutenberg_links(
@@ -98,9 +94,7 @@ def to_skip(link, extensions=None, domains=None):
         return True
     if '.'.join([domain, suffix]) in domains:
         return True
-    if '.'.join([subdomain, domain, suffix]) in domains:
-        return True
-    return False
+    return '.'.join([subdomain, domain, suffix]) in domains
 
 
 def download_page(link, context=None, timeout=None):
@@ -131,8 +125,8 @@ def download_page(link, context=None, timeout=None):
     except UnicodeError as e:
         print('UnicodeError for', link)
         return 2, ''
-    except (urllib.error.HTTPError) as e:
-        print('Error {} for {}'.format(e.code, link))
+    except urllib.error.HTTPError as e:
+        print(f'Error {e.code} for {link}')
         return 1, ''
     except urllib.error.URLError as e:
         print('URLError for', link)
@@ -277,7 +271,7 @@ def download_pages(link_file,
             out.write(link + '\n' + txt)
 
         print(find_unprintable(txt))
-        index.write('{}\n'.format(link))
+        index.write(f'{link}\n')
         idx += 1
 
     links.close()
